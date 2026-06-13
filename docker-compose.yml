@@ -1,22 +1,11 @@
 version: '3.8'
 
 services:
-  telegram-bot:
+  bot:
     build: .
-    container_name: somai-telegram-bot
+    container_name: somai-telebot
     restart: unless-stopped
     env_file:
       - .env
     volumes:
       - ./data:/app/data
-    command: python3 delivery/telegram/bot.py
-
-  scheduler:
-    build: .
-    container_name: somai-scheduler
-    restart: unless-stopped
-    env_file:
-      - .env
-    volumes:
-      - ./data:/app/data
-    command: python3 schedule/scheduler.py

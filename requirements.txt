@@ -1,7 +1,9 @@
-python-telegram-bot>=20.0
-python-dotenv>=1.0
-openai>=1.0
-requests>=2.31
-schedule>=1.2
-apscheduler>=3.10
-sqlalchemy>=2.0
+python-telegram-bot==20.7
+python-dotenv==1.0.0
+httpx==0.25.2
+APScheduler==3.10.4
+firebase-admin==6.4.0
+openai==1.82.1
+Flask==3.1.1
+pytz==2024.1
+requests==2.31.0
