@@ -133,12 +133,8 @@ async def talk_human(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ─── Talk to Bot (AI) ─────────────────────────────
 async def talk_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        "🤖 **Talk to the Bot**\n\n"
-        "Wax kasta oo aad weydiiso, AI-ga ayaa kaa jawaabaya! "
-        "Isticmaal OpenRouter AI si aad u hesho jawaab su'aalahaada.\n\n"
-        "**Fudud:** Kaliya qor su'aashaada ciwaanka hoose!\n\n"
-        "Tusaale: *Waa maxay ChatGPT?*\n"
-        "*Sidee loo sameeyaa Telegram Bot?*"
+        "🤖 **Haye, qor su'aashaada!**\n\n"
+        "Waan diyaar ahay inaan kaa caawiyo. 🤗"
     )
     if update.message:
         await update.message.reply_text(text, reply_markup=BACK_BUTTON)
