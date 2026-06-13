@@ -1,6 +1,8 @@
 """
-Somali AI Academy — Telegram Bot v2
-Qaab cusub: Menu qurux badan, Back button, Daily lessons, Talk Human/Bot
+Somali AI Academy — Telegram Bot v4
+- Cashar hal mar: Next/Previous buttons
+- Conversational course matching
+- User session tracking
 """
 import sys
 import os
@@ -37,6 +39,10 @@ user_daily_ai = defaultdict(lambda: {"date": "", "count": 0})
 DAILY_LESSON_LIMIT = 2
 DAILY_AI_LIMIT = 15
 
+# ─── User session (which lesson they're on) ──────
+# { user_id: {"course_id": 1, "lesson_idx": 0} }
+user_session = {}
+
 def check_limit(tracker, user_id, limit):
     today = str(date.today())
     data = tracker[user_id]
@@ -53,7 +59,7 @@ def increment(tracker, user_id):
         data["count"] = 0
     data["count"] += 1
 
-# ─── Main Menu ────────────────────────────────────────
+# ─── Main Menu ────────────────────────────────────
 MAIN_MENU = InlineKeyboardMarkup([
     [InlineKeyboardButton("🤖 Talk to Bot (AI)", callback_data="talk_bot")],
     [InlineKeyboardButton("👨‍💻 Talk to Human", callback_data="talk_human")],
@@ -70,7 +76,6 @@ BACK_BUTTON = InlineKeyboardMarkup([
 ])
 
 def make_menu(buttons_rows, back=True):
-    """Samee menu leh row kasta 2-3 buttons iyo back button"""
     kb = []
     for row in buttons_rows:
         kb.append([InlineKeyboardButton(b["text"], callback_data=b.get("data", "")) for b in row])
@@ -78,7 +83,7 @@ def make_menu(buttons_rows, back=True):
         kb.append([InlineKeyboardButton("🔙 Ku noqo Menu-ka", callback_data="main_menu")])
     return InlineKeyboardMarkup(kb)
 
-# ─── Start ────────────────────────────────────────────
+# ─── Start ────────────────────────────────────────
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     first = user.first_name or ""
@@ -93,13 +98,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎓 **Free Courses:**\n"
         f"   AI Video Editing 🎥\n"
         f"   WhatsApp/Telegram Bot 📱\n\n"
-        f"Halkan waxaad ka helaysaa:\n"
-        f"• 🤖 AI-ga la hadal (su'aal kasta)\n"
-        f"• 📚 Buugaagta & Koorsooyinka\n"
-        f"• 📅 Cashar Maalin kasta + Layli\n"
-        f"• 📚 Koorsooyin Free & Lacag ah\n"
-        f"• 👨‍💻 La xiriir Macallinka\n\n"
-        f"**Fadlan dooro hoose:**"
+        f"**Maxaad rabtaa inaad barato?**\n"
+        f"Kaliya qor waxa aad rabto, AI-ga ayaa koorsada ku habboon kuu soo jeedinaya!\n\n"
+        f"Tusaale: *Waxaan rabaa inaan barto chatbot-ka*"
     )
     
     if update.message:
@@ -112,7 +113,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await start(update, context)
 
-# ─── Talk to Human ────────────────────────────────────
+# ─── Talk to Human ────────────────────────────────
 async def talk_human(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "👨‍💻 **Talk to a Human**\n\n"
@@ -129,7 +130,7 @@ async def talk_human(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=BACK_BUTTON)
 
-# ─── Talk to Bot (AI) ─────────────────────────────────
+# ─── Talk to Bot (AI) ─────────────────────────────
 async def talk_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "🤖 **Talk to the Bot**\n\n"
@@ -144,7 +145,7 @@ async def talk_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=BACK_BUTTON)
 
-# ─── Contacts ─────────────────────────────────────────
+# ─── Contacts ─────────────────────────────────────
 async def contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "🛂 **Contacts**\n\n"
@@ -170,7 +171,7 @@ async def contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=BACK_BUTTON)
 
-# ─── More Info ────────────────────────────────────────
+# ─── More Info ────────────────────────────────────
 async def more_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "❓ **More Info**\n\n"
@@ -192,7 +193,14 @@ async def more_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=BACK_BUTTON)
 
-# ─── Courses ─────────────────────────────────────────
+# ─── Courses ─────────────────────────────────────
+COURSE_SHORT_DESC = {
+    1: "🤖 Chatbots, Prompt Engineering, ManyChat, AI Tools — 40 cashar",
+    2: "🎬 InVideo, Pictory.ai, Lumen5 — 10 cashar",
+    3: "📦 Zendrop, Dropshipping AI — 10 cashar",
+    4: "🌐 WhatsApp, Telegram, YouTube, FB — Bulshada",
+}
+
 async def courses_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [{"text": "🤖 Koorsada 1: 40 Cashar AI", "data": "course_1"},
@@ -208,50 +216,105 @@ async def courses_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=reply)
 
-async def show_course(update: Update, context: ContextTypes.DEFAULT_TYPE, course_id: int):
-    text = course_agent.show_course(course_id)
-    keyboard = [
-        [InlineKeyboardButton("📅 Casharka Maanta", callback_data="today")],
-        [InlineKeyboardButton("🔙 Koorsooyinka", callback_data="courses"),
-         InlineKeyboardButton("🔙 Menu-ka", callback_data="main_menu")],
-    ]
+async def show_lesson(update, context, user_id, direction="start"):
+    """Show one lesson at a time with Next/Previous"""
+    uid = user_id
+    if uid not in user_session:
+        user_session[uid] = {"course_id": 1, "lesson_idx": 0}
     
-    if update.message:
-        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), disable_web_page_preview=False)
-    elif update.callback_query:
-        await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), disable_web_page_preview=False)
-    increment(user_daily_lessons, update.effective_user.id)
-
-# ─── Today's Lesson ──────────────────────────────────
-async def today_lesson(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
+    session = user_session[uid]
+    course = course_agent.get_course(session["course_id"])
+    if not course:
+        return
     
-    if not check_limit(user_daily_lessons, user_id, DAILY_LESSON_LIMIT):
+    total = len(course["lessons"])
+    
+    if direction == "next":
+        session["lesson_idx"] = min(session["lesson_idx"] + 1, total - 1)
+    elif direction == "prev":
+        session["lesson_idx"] = max(session["lesson_idx"] - 1, 0)
+    elif direction == "start":
+        session["lesson_idx"] = 0
+    
+    idx = session["lesson_idx"]
+    lesson = course["lessons"][idx]
+    
+    text = (
+        f"{course['emoji']} **{course['name']}**\n\n"
+        f"📖 **Cashar {lesson['number']}: {lesson['title']}**\n"
+        f"_{lesson['description']}_\n\n"
+        f"🔗 {lesson['link']}\n\n"
+        f"📊 **Horukac:** {idx + 1} / {total}"
+    )
+    
+    # Build navigation buttons
+    nav = []
+    nav_row = []
+    if idx > 0:
+        nav_row.append(InlineKeyboardButton("⬅️ Hore", callback_data="lesson_prev"))
+    if idx < total - 1:
+        nav_row.append(InlineKeyboardButton("➡️ Xiga", callback_data="lesson_next"))
+    if nav_row:
+        nav.append(nav_row)
+    
+    nav.append([
+        InlineKeyboardButton("🔙 Koorsooyinka", callback_data="courses"),
+        InlineKeyboardButton("🔙 Menu-ka", callback_data="main_menu"),
+    ])
+    
+    reply = InlineKeyboardMarkup(nav)
+    
+    # Check daily limit
+    if not check_limit(user_daily_lessons, uid, DAILY_LESSON_LIMIT):
         text = (
-            "⛔ **Maalintii waxaa laga yaabaa 2 cashar oo kAL**\n\n"
-            "Waxaad soo aragtay xadka maanta. Booqo berri \n"
-            "casharo cusub oo diyaar ah!\n\n"
+            "⛔ **Maalintii 2 cashar oo kAL**\n\n"
+            "Waxaad soo aragtay xadka maanta. Berri waa la sii wadi karaa!\n\n"
             "Wixii su'aalo ah, isticmaal 🤖 Talk to Bot (AI)"
         )
         reply = BACK_BUTTON
-    else:
-        courses_file = context.application.bot_data.get("courses_file", "data/courses.json")
-        with open(courses_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        lesson, course = sched_agent.get_daily_lesson(data)
-        text = notify_agent.format_lesson_notification(lesson, course)
-        increment(user_daily_lessons, user_id)
-        reply = make_menu([
-            [{"text": "📚 Koorsooyinka", "data": "courses"},
-             {"text": "❓ FAQ", "data": "faq"}],
-        ])
+    
+    if update.message:
+        await update.message.reply_text(text, reply_markup=reply, disable_web_page_preview=False)
+    elif update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=reply, disable_web_page_preview=False)
+    
+    increment(user_daily_lessons, uid)
+
+# ─── Course entry point ──────────────────────────
+async def show_course(update, context, course_id: int):
+    """Start showing a course from lesson 1"""
+    user_id = update.effective_user.id
+    user_session[user_id] = {"course_id": course_id, "lesson_idx": 0}
+    await show_lesson(update, context, user_id, "start")
+
+async def lesson_next(update, context):
+    """Show next lesson"""
+    await show_lesson(update, context, update.effective_user.id, "next")
+
+async def lesson_prev(update, context):
+    """Show previous lesson"""
+    await show_lesson(update, context, update.effective_user.id, "prev")
+
+# ─── Today's Lesson ──────────────────────────────
+async def today_lesson(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    courses_file = context.application.bot_data.get("courses_file", "data/courses.json")
+    with open(courses_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    lesson, course = sched_agent.get_daily_lesson(data)
+    text = notify_agent.format_lesson_notification(lesson, course)
+    
+    reply = make_menu([
+        [{"text": "📚 Koorsooyinka", "data": "courses"},
+         {"text": "❓ FAQ", "data": "faq"}],
+    ])
     
     if update.message:
         await update.message.reply_text(text, reply_markup=reply, disable_web_page_preview=False)
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=reply, disable_web_page_preview=False)
 
-# ─── FAQ ──────────────────────────────────────────────
+# ─── FAQ ─────────────────────────────────────────
 async def faq_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = faq_agent.get_all_faqs()
     keyboard = make_menu([
@@ -262,14 +325,33 @@ async def faq_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=keyboard)
 
-# ─── AI Response (Talk to Bot) ────────────────────────
+# ─── Conversational Course Matching ──────────────
+COURSE_KEYWORDS = {
+    1: ["chatbot", "bot", "chat", "prompt", "manychat", "ai tool", "ai chatbot", "gpt", "chatgpt", "telegram bot"],
+    2: ["video", "edit", "invideo", "pictory", "lumen5", "video editing", "tifatir"],
+    3: ["dropshipping", "zendrop", "ganacsi", "iib", "shopping", "online store"],
+    4: ["bulsho", "community", "whatsapp group", "telegram channel", "facebook", "youtube channel"],
+}
+
+def match_course(user_text):
+    """Match user text to the right course"""
+    text = user_text.lower()
+    scores = {}
+    for cid, keywords in COURSE_KEYWORDS.items():
+        score = sum(1 for kw in keywords if kw in text)
+        if score > 0:
+            scores[cid] = score
+    if scores:
+        return max(scores, key=scores.get)
+    return None
+
+# ─── AI Response ─────────────────────────────────
 async def ai_response(user_text):
-    """Isticmaal OpenRouter AI si aad uga jawaabto su'aasha"""
     api_key = os.getenv("OPENROUTER_API_KEY", "")
     if not api_key:
         return (
             "Ma jiro API key. Fadlan ku qor `.env`-ga:\n"
-            "`OPENROUTER_API_KEY=sk-or-v1-...`"
+            "OPENROUTER_API_KEY=your-key-here"
         )
     
     try:
@@ -293,22 +375,39 @@ async def ai_response(user_text):
             return data["choices"][0]["message"]["content"]
     except Exception as e:
         logger.error(f"AI error: {e}")
-        return f"Waan ka xumahay, qalad ayaa dhacay. Fadlan markale isku day: {str(e)[:100]}"
+        return f"Waan ka xumahay, qalad ayaa dhacay: {str(e)[:100]}"
 
-# ─── Message Handler ──────────────────────────────────
+# ─── Message Handler ─────────────────────────────
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Wixii qoraal ah — AI ayaa ka jawaabaya (Talk to Bot)"""
+    """AI + Course matching + FAQ"""
     text = update.message.text
     if not text:
         return
     
-    # First try FAQ keywords (fast)
+    # 1. Try FAQ first (fast)
     answer = faq_agent.get_answer(text)
     if answer:
         await update.message.reply_text(answer, reply_markup=BACK_BUTTON)
         return
     
-    # Check daily AI limit
+    # 2. Try course matching
+    matched = match_course(text)
+    if matched:
+        course = course_agent.get_course(matched)
+        emoji = course["emoji"] if course else "📚"
+        response = (
+            f"🎯 **Waxaan u maleynayaa inaad rabto Koorsada {matched}!**\n\n"
+            f"{COURSE_SHORT_DESC[matched]}\n\n"
+            f"Ma rabtaa inaad eegto?"
+        )
+        keyboard = [
+            [InlineKeyboardButton(f"✅ Haa, tus", callback_data=f"course_{matched}"),
+             InlineKeyboardButton("🔙 Menu-ka", callback_data="main_menu")],
+        ]
+        await update.message.reply_text(response, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+    
+    # 3. Check AI daily limit
     user_id = update.effective_user.id
     if not check_limit(user_daily_ai, user_id, DAILY_AI_LIMIT):
         await update.message.reply_text(
@@ -319,16 +418,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # Tell user we're thinking
+    # 4. Get AI response
     thinking_msg = await update.message.reply_text(
         "🤔 **Waan ka fikirayaa... fadlan sug...**",
         reply_markup=BACK_BUTTON
     )
     
-    # Get AI response
     response = await ai_response(text)
     
-    # Update the thinking message with the real answer
     await thinking_msg.edit_text(
         f"🤖 **Jawaabta AI-ga:**\n\n{response}",
         reply_markup=BACK_BUTTON
@@ -336,7 +433,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     increment(user_daily_ai, user_id)
 
-# ─── Callback Router ──────────────────────────────────
+# ─── Callback Router ────────────────────────────
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -348,68 +445,49 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "talk_bot": talk_bot,
         "contacts": contacts,
         "more_info": more_info,
-        "books": books_menu,
-        "fees": fees_menu,
+        "books": "books_menu",
+        "fees": "fees_menu",
         "courses": courses_menu,
         "today": today_lesson,
         "faq": faq_menu,
+        "lesson_next": lesson_next,
+        "lesson_prev": lesson_prev,
         "course_1": lambda u, c: show_course(u, c, 1),
         "course_2": lambda u, c: show_course(u, c, 2),
         "course_3": lambda u, c: show_course(u, c, 3),
         "course_4": lambda u, c: show_course(u, c, 4),
-        "book_1": lambda u, c: show_book(u, c, 1),
-        "book_2": lambda u, c: show_book(u, c, 2),
-        "book_3": lambda u, c: show_book(u, c, 3),
-        "book_4": lambda u, c: show_book(u, c, 4),
-        "book_5": lambda u, c: show_book(u, c, 5),
     }
+    
+    # Handle books / fees here since they need context
+    if data == "books":
+        await books_menu(update, context)
+        return
+    if data == "fees":
+        await fees_menu(update, context)
+        return
+    
+    # Handle book_1..book_5
+    if data.startswith("book_"):
+        book_id = int(data.split("_")[1])
+        await show_book(update, context, book_id)
+        return
     
     handler = routes.get(data)
     if handler:
         await handler(update, context)
 
-# ─── Books ────────────────────────────────────────────
+# ─── Books ────────────────────────────────────────
 BOOKS_DATA = [
-    {
-        "id": 1,
-        "title": "ISBAR COMPUTER",
-        "emoji": "💻",
-        "price": "$15",
-        "desc": "Computer Basics, Software & Hardware, Windows 11, Mac OS, Microsoft Office, Adobe Photoshop, OBS Studio",
-        "free": False,
-    },
-    {
-        "id": 2,
-        "title": "ISBAR PROGRAMMING",
-        "emoji": "👨‍💻",
-        "price": "$15",
-        "desc": "Basics of Programming, Web Development, Luqadaha Programming-ka, Database, Code Editor & IDE",
-        "free": False,
-    },
-    {
-        "id": 3,
-        "title": "ISBAR AI",
-        "emoji": "🧠",
-        "price": "FREE 🎉",
-        "desc": "Taariikhda AI, AI & Waxbarashada, AI & Shaqooyinka, AI & Graphic Design, AI & Ganacsiga",
-        "free": True,
-    },
-    {
-        "id": 4,
-        "title": "ISBAR PROMPTS (ChatGPT)",
-        "emoji": "🤖",
-        "price": "FREE 🎉",
-        "desc": "Waa maxay ChatGPT?, Sida loola xiriiro, Shaqooyinka & ChatGPT, ChatGPT & Business-ka",
-        "free": True,
-    },
-    {
-        "id": 5,
-        "title": "ISBAR LINUX Macallin La'aan",
-        "emoji": "🐧",
-        "price": "FREE 🎉",
-        "desc": "Aasaaska Linux, Amarrada Linux, Isticmaalka nidaamka, Noqo khabiir Linux adigoon macallin u baahnayn!",
-        "free": True,
-    },
+    {"id": 1, "title": "ISBAR COMPUTER", "emoji": "💻", "price": "$15", 
+     "desc": "Computer Basics, Software & Hardware, Windows 11, Mac OS, Microsoft Office, Adobe Photoshop, OBS Studio", "free": False},
+    {"id": 2, "title": "ISBAR PROGRAMMING", "emoji": "👨‍💻", "price": "$15",
+     "desc": "Basics of Programming, Web Development, Luqadaha Programming-ka, Database, Code Editor & IDE", "free": False},
+    {"id": 3, "title": "ISBAR AI", "emoji": "🧠", "price": "FREE 🎉",
+     "desc": "Taariikhda AI, AI & Waxbarashada, AI & Shaqooyinka, AI & Graphic Design, AI & Ganacsiga", "free": True},
+    {"id": 4, "title": "ISBAR PROMPTS (ChatGPT)", "emoji": "🤖", "price": "FREE 🎉",
+     "desc": "Waa maxay ChatGPT?, Sida loola xiriiro, Shaqooyinka & ChatGPT, ChatGPT & Business-ka", "free": True},
+    {"id": 5, "title": "ISBAR LINUX Macallin La'aan", "emoji": "🐧", "price": "FREE 🎉",
+     "desc": "Aasaaska Linux, Amarrada Linux, Isticmaalka nidaamka, Noqo khabiir Linux", "free": True},
 ]
 
 async def books_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -445,7 +523,8 @@ async def show_book(update: Update, context: ContextTypes.DEFAULT_TYPE, book_id:
             break
     
     if not book:
-        await update.callback_query.edit_message_text("❌ Buuggan lama helin.", reply_markup=BACK_BUTTON)
+        if update.callback_query:
+            await update.callback_query.edit_message_text("❌ Buuggan lama helin.", reply_markup=BACK_BUTTON)
         return
     
     price_line = "**💰 FREE ilaa 2028!** 🎉" if book["free"] else f"**💰 Qiimaha:** {book['price']}"
@@ -460,7 +539,7 @@ async def show_book(update: Update, context: ContextTypes.DEFAULT_TYPE, book_id:
     if update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=BACK_BUTTON)
 
-# ─── Courses & Fees ────────────────────────────────────
+# ─── Courses & Fees ────────────────────────────────
 async def fees_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "💰 **Courses & Fees**\n\n"
@@ -474,15 +553,14 @@ async def fees_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "━━━━━━━━━━━━━━━\n"
         "🎓 **Free Courses:**\n\n"
         "🎥 AI Video Editing — **Free**\n"
-        "   Duration: 4-5 days\n"
-        "   Normally $23.60 → Free this year!\n\n"
+        "   Duration: 4-5 days\n\n"
         "📝 AI ChatGPT - Somali Data Writing — **$24 (Student: $10)**\n"
         "   Duration: 4-5 days\n\n"
         "🌐 Web Design with AI Tools — **$24 (Student: $10)**\n"
         "   Duration: 4-5 days\n\n"
         "━━━━━━━━━━━━━━━\n"
         "🛡️ **Security Course (Af-Soomaali)**\n"
-        "   Topics: Kali Linux, Python, Basic\n"
+        "   Kali Linux, Python, Basic\n"
         "   Duration: 3-4 months\n"
         "   **Price: $26.9/session (Student: $10)**\n\n"
         "━━━━━━━━━━━━━━━\n"
@@ -500,7 +578,7 @@ async def fees_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, reply_markup=BACK_BUTTON)
 
-# ─── Search ───────────────────────────────────────────
+# ─── Search ───────────────────────────────────────
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyword = " ".join(context.args) if context.args else ""
     if not keyword:
@@ -525,20 +603,23 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(text, reply_markup=BACK_BUTTON)
 
-# ─── Help ─────────────────────────────────────────────
+# ─── Help ─────────────────────────────────────────
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "🆘 **Caawimaad**\n\n"
         "/start — Menu-ka Guud\n"
         "/courses — Koorsooyinka\n"
         "/today — Casharka Maanta\n"
+        "/books — Buugaagta\n"
+        "/fees — Courses & Fees\n"
         "/faq — FAQ-yada\n"
         "/search KEYWORD — Raadi cashar\n\n"
-        "Wax kasta oo aad qorto, AI-ga ayaa ka jawaabaya!"
+        "Wax kasta oo aad qorto, AI-ga ayaa kuu soo jeedinaya\n"
+        "koorsada ku habboon ama ka jawaabaya su'aashaada!"
     )
     await update.message.reply_text(text)
 
-# ─── Main ────────────────────────────────────────────
+# ─── Main ─────────────────────────────────────────
 def main():
     if not BOT_TOKEN:
         print("BOT_TOKEN-ka .env-ga ku qor!")
@@ -548,23 +629,19 @@ def main():
     courses_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "courses.json")
     app.bot_data["courses_file"] = courses_file
 
-    # Commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("courses", courses_menu))
     app.add_handler(CommandHandler("today", today_lesson))
-    app.add_handler(CommandHandler("faq", faq_menu))
-    app.add_handler(CommandHandler("search", search_command))
     app.add_handler(CommandHandler("books", books_menu))
     app.add_handler(CommandHandler("fees", fees_menu))
+    app.add_handler(CommandHandler("faq", faq_menu))
+    app.add_handler(CommandHandler("search", search_command))
 
-    # Callback buttons
     app.add_handler(CallbackQueryHandler(button_handler))
-
-    # Message handler (Talk to Bot AI)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    print("✅ Somali AI Academy Bot v2 wuu shaqeynayaa! Ctrl+C jooji.")
+    print("✅ Somali AI Academy Bot v4 wuu shaqeynayaa! Ctrl+C jooji.")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
