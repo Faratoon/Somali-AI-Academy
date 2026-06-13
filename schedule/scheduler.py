@@ -16,7 +16,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from pytz import timezone
 
-from config import TELEGRAM_BOT_TOKEN, DAILY_LESSON_TIME, TIMEZONE, NOTIFY_BEFORE_MINUTES
+from config import BOT_TOKEN, DAILY_LESSON_TIME, TIMEZONE, NOTIFY_BEFORE_MINUTES
 from agents.schedule_agent import ScheduleAgent
 from agents.notify_agent import NotifyAgent
 

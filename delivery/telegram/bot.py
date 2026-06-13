@@ -16,7 +16,7 @@ from telegram.ext import (
     filters, CallbackQueryHandler, ContextTypes
 )
 
-from config import TELEGRAM_BOT_TOKEN, COURSE_PLATFORM_URL, PLATFORMS
+from config import BOT_TOKEN, COURSE_PLATFORM_URL, PLATFORMS
 from agents.course_agent import CourseAgent
 from agents.faq_agent import FAQAgent
 from agents.schedule_agent import ScheduleAgent
@@ -259,12 +259,12 @@ async def course4(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await course_detail(update, context, 4)
 
 def main():
-    if not TELEGRAM_BOT_TOKEN or TELEGRAM_BOT_TOKEN.startswith("6875"):
-        print("TELEGRAM_BOT_TOKEN-ka .env-ga ku qor!")
-        print(f"${TELEGRAM_BOT_TOKEN}")
+    if not BOT_TOKEN or BOT_TOKEN.startswith("6875"):
+        print("BOT_TOKEN-ka .env-ga ku qor!")
+        print(f"${BOT_TOKEN}")
         return
 
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    app = Application.builder().token(BOT_TOKEN).build()
     
     # Store courses file path
     courses_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "courses.json")
