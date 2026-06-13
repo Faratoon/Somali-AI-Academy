@@ -57,7 +57,9 @@ def increment(tracker, user_id):
 MAIN_MENU = InlineKeyboardMarkup([
     [InlineKeyboardButton("🤖 Talk to Bot (AI)", callback_data="talk_bot")],
     [InlineKeyboardButton("👨‍💻 Talk to Human", callback_data="talk_human")],
-    [InlineKeyboardButton("📚 Koorsooyinka", callback_data="courses"),
+    [InlineKeyboardButton("📚 Buugaagta", callback_data="books"),
+     InlineKeyboardButton("📚 Koorsooyinka", callback_data="courses")],
+    [InlineKeyboardButton("💰 Courses & Fees", callback_data="fees"),
      InlineKeyboardButton("📅 Casharka Maanta", callback_data="today")],
     [InlineKeyboardButton("🛂 Contacts", callback_data="contacts"),
      InlineKeyboardButton("❓ More Info", callback_data="more_info")],
@@ -84,10 +86,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"Salaam {first}! 👋\n\n"
         f"Kusoo dhawow **Somali AI Academy**!\n\n"
+        f"🏆 **Free Books ilaa 2028:**\n"
+        f"1. Isbar AI 🧠 — **FREE**\n"
+        f"2. ChatGPT Basic Prompts 🤖 — **FREE**\n"
+        f"3. Isbar Linux 🐧 — **FREE**\n\n"
+        f"🎓 **Free Courses:**\n"
+        f"   AI Video Editing 🎥\n"
+        f"   WhatsApp/Telegram Bot 📱\n\n"
         f"Halkan waxaad ka helaysaa:\n"
         f"• 🤖 AI-ga la hadal (su'aal kasta)\n"
-        f"• 📚 Koorsooyin AI ah (40+ cashar)\n"
+        f"• 📚 Buugaagta & Koorsooyinka\n"
         f"• 📅 Cashar Maalin kasta + Layli\n"
+        f"• 📚 Koorsooyin Free & Lacag ah\n"
         f"• 👨‍💻 La xiriir Macallinka\n\n"
         f"**Fadlan dooro hoose:**"
     )
@@ -338,6 +348,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "talk_bot": talk_bot,
         "contacts": contacts,
         "more_info": more_info,
+        "books": books_menu,
+        "fees": fees_menu,
         "courses": courses_menu,
         "today": today_lesson,
         "faq": faq_menu,
@@ -345,11 +357,148 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "course_2": lambda u, c: show_course(u, c, 2),
         "course_3": lambda u, c: show_course(u, c, 3),
         "course_4": lambda u, c: show_course(u, c, 4),
+        "book_1": lambda u, c: show_book(u, c, 1),
+        "book_2": lambda u, c: show_book(u, c, 2),
+        "book_3": lambda u, c: show_book(u, c, 3),
+        "book_4": lambda u, c: show_book(u, c, 4),
+        "book_5": lambda u, c: show_book(u, c, 5),
     }
     
     handler = routes.get(data)
     if handler:
         await handler(update, context)
+
+# ─── Books ────────────────────────────────────────────
+BOOKS_DATA = [
+    {
+        "id": 1,
+        "title": "ISBAR COMPUTER",
+        "emoji": "💻",
+        "price": "$15",
+        "desc": "Computer Basics, Software & Hardware, Windows 11, Mac OS, Microsoft Office, Adobe Photoshop, OBS Studio",
+        "free": False,
+    },
+    {
+        "id": 2,
+        "title": "ISBAR PROGRAMMING",
+        "emoji": "👨‍💻",
+        "price": "$15",
+        "desc": "Basics of Programming, Web Development, Luqadaha Programming-ka, Database, Code Editor & IDE",
+        "free": False,
+    },
+    {
+        "id": 3,
+        "title": "ISBAR AI",
+        "emoji": "🧠",
+        "price": "FREE 🎉",
+        "desc": "Taariikhda AI, AI & Waxbarashada, AI & Shaqooyinka, AI & Graphic Design, AI & Ganacsiga",
+        "free": True,
+    },
+    {
+        "id": 4,
+        "title": "ISBAR PROMPTS (ChatGPT)",
+        "emoji": "🤖",
+        "price": "FREE 🎉",
+        "desc": "Waa maxay ChatGPT?, Sida loola xiriiro, Shaqooyinka & ChatGPT, ChatGPT & Business-ka",
+        "free": True,
+    },
+    {
+        "id": 5,
+        "title": "ISBAR LINUX Macallin La'aan",
+        "emoji": "🐧",
+        "price": "FREE 🎉",
+        "desc": "Aasaaska Linux, Amarrada Linux, Isticmaalka nidaamka, Noqo khabiir Linux adigoon macallin u baahnayn!",
+        "free": True,
+    },
+]
+
+async def books_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "📚 **AFARTAN BUUG – ISBAR MACALLIN LA'AAN!**\n\n"
+        "Baro Computer, Programming, AI & ChatGPT adigoo gurigaaga jooga!\n\n"
+        "🏆 **2 Buug oo FREE ah ilaa 2028:**\n"
+        "   • Isbar AI 🧠\n"
+        "   • ChatGPT Basic Prompts 🤖\n"
+        "   • Isbar Linux 🐧\n\n"
+        "🛍 **DHAMMAAN BUUGAAGTA haddii aad wada iibsatid – $15 kaliya!**\n"
+        "💥 **Bonus:** Buug HACKING Af Soomaali ah – bilaash!\n\n"
+        "👇 **Dooro buug:**"
+    )
+    
+    buttons = []
+    for b in BOOKS_DATA:
+        badge = "FREE" if b["free"] else b["price"]
+        buttons.append([{"text": f"{b['emoji']} {b['title']} [{badge}]", "data": f"book_{b['id']}"}])
+    
+    reply = make_menu(buttons)
+    
+    if update.message:
+        await update.message.reply_text(text, reply_markup=reply)
+    elif update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=reply)
+
+async def show_book(update: Update, context: ContextTypes.DEFAULT_TYPE, book_id: int):
+    book = None
+    for b in BOOKS_DATA:
+        if b["id"] == book_id:
+            book = b
+            break
+    
+    if not book:
+        await update.callback_query.edit_message_text("❌ Buuggan lama helin.", reply_markup=BACK_BUTTON)
+        return
+    
+    price_line = "**💰 FREE ilaa 2028!** 🎉" if book["free"] else f"**💰 Qiimaha:** {book['price']}"
+    text = (
+        f"{book['emoji']} **{book['title']}**\n\n"
+        f"{book['desc']}\n\n"
+        f"{price_line}\n\n"
+        f"🖋 Editor: @Mfaratoon\n\n"
+        f"📥 **Si aad u hesho:** @Mfaratoon"
+    )
+    
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=BACK_BUTTON)
+
+# ─── Courses & Fees ────────────────────────────────────
+async def fees_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "💰 **Courses & Fees**\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        "🔹 **Paid Courses – $34** (Student: $10)\n"
+        "Koorsa kasta 4-5 maalmood\n\n"
+        "📱 WhatsApp Automation Business Bot — **Free**\n"
+        "📞 Telegram Automation Business Bot — **Free**\n"
+        "💬 Messenger Automation Business Bot — **$34 (Student: $10)**\n"
+        "📸 Instagram Automation Business Bot — **$34 (Student: $10)**\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        "🎓 **Free Courses:**\n\n"
+        "🎥 AI Video Editing — **Free**\n"
+        "   Duration: 4-5 days\n"
+        "   Normally $23.60 → Free this year!\n\n"
+        "📝 AI ChatGPT - Somali Data Writing — **$24 (Student: $10)**\n"
+        "   Duration: 4-5 days\n\n"
+        "🌐 Web Design with AI Tools — **$24 (Student: $10)**\n"
+        "   Duration: 4-5 days\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        "🛡️ **Security Course (Af-Soomaali)**\n"
+        "   Topics: Kali Linux, Python, Basic\n"
+        "   Duration: 3-4 months\n"
+        "   **Price: $26.9/session (Student: $10)**\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        "🏆 **Free Books ilaa 2028:**\n"
+        "   • Isbar AI 🧠\n"
+        "   • ChatGPT Basic Prompts 🤖\n"
+        "   • Isbar Linux 🐧\n\n"
+        "📦 **All Books Bundle: $15**\n"
+        "   Bonus: Buug HACKING Af-Soomaali ah — **FREE!**\n\n"
+        "📲 **Kusoo xidhiidh @Mfaratoon si aad u iibsato!**"
+    )
+    
+    if update.message:
+        await update.message.reply_text(text, reply_markup=BACK_BUTTON)
+    elif update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=BACK_BUTTON)
 
 # ─── Search ───────────────────────────────────────────
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -406,6 +555,8 @@ def main():
     app.add_handler(CommandHandler("today", today_lesson))
     app.add_handler(CommandHandler("faq", faq_menu))
     app.add_handler(CommandHandler("search", search_command))
+    app.add_handler(CommandHandler("books", books_menu))
+    app.add_handler(CommandHandler("fees", fees_menu))
 
     # Callback buttons
     app.add_handler(CallbackQueryHandler(button_handler))
