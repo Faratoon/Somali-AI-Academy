@@ -117,3 +117,15 @@ Mashruucan waa furan yahay! Haddii aad rabto inaad ka qayb qaadato:
 
 ## License
 MIT
+
+---
+
+<div align="center">
+
+**AI iyo tech af-Soomaali — bilaash.**
+
+<a href="https://www.youtube.com/channel/UC7OY_kBXf3Xr8aDZoc6tXZQ"><img alt="YouTube — ISBAR AI Af-Soomaali" src="https://img.shields.io/badge/YouTube-ISBAR%20AI%20Af--Soomaali-FF0000?style=flat-square&logo=youtube&logoColor=white"></a>
+<a href="https://somalilibrary.substack.com"><img alt="Substack — Somali Library" src="https://img.shields.io/badge/Substack-Somali%20Library-FF6719?style=flat-square&logo=substack&logoColor=white"></a>
+<a href="https://github.com/Faratoon"><img alt="GitHub — Faratoon" src="https://img.shields.io/badge/GitHub-Faratoon-181717?style=flat-square&logo=github&logoColor=white"></a>
+
+</div>
